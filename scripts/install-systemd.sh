@@ -42,7 +42,7 @@ WorkingDirectory=$PROJECT_DIR
 Environment="PATH=$PROJECT_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin"
 EnvironmentFile=$PROJECT_DIR/.env
 
-ExecStart=$PROJECT_DIR/.venv/bin/python3 $PROJECT_DIR/src/main.py --server --port \${PORT:-9999}
+ExecStart=$PROJECT_DIR/.venv/bin/python3 $PROJECT_DIR/src/main.py --server --port ${PORT:-9999}
 
 StandardOutput=journal
 StandardError=journal
