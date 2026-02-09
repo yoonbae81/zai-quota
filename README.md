@@ -62,7 +62,7 @@ PORT=9999
 
 Then access the endpoint:
 ```bash
-curl http://localhost:9999/
+curl http://0.0.0.0:9999/
 ```
 
 ### Systemd Service (Linux)

@@ -133,8 +133,8 @@ def main():
             os.environ["ZAI_API_KEY"] = api_key
         
         print(f"Starting web server on port {args.port}...")
-        server = HTTPServer(('localhost', args.port), UsageRequestHandler)
-        print(f"Server running at http://localhost:{args.port}/")
+        server = HTTPServer(('0.0.0.0', args.port), UsageRequestHandler)
+        print(f"Server running at http://0.0.0.0:{args.port}/")
         print("Press Ctrl+C to stop the server")
         try:
             server.serve_forever()
