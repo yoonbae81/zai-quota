@@ -62,6 +62,10 @@ echo ""
 echo "Reloading systemd daemon..."
 systemctl --user daemon-reload
 
+# Enable linger for the user
+echo "Enabling linger for user $USER..."
+loginctl enable-linger "$USER"
+
 # Enable and start service
 echo "Enabling and starting service..."
 systemctl --user enable "$SERVICE_NAME.service"

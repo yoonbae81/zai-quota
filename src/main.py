@@ -57,18 +57,14 @@ def extract_token_limit(data):
 
 def calculate_metrics(token_limit):
     """Calculates the necessary metrics based on the extracted data."""
-    current_val = token_limit.get("currentValue", 0)
-    max_limit = token_limit.get("usage", 1)
+    quota_percentage = token_limit.get("percentage", 0)
     next_reset_ms = token_limit.get("nextResetTime", 0)
     
-    # 1. Calculate usage (percentage, rounded to two decimal places)
-    quota_used = round(current_val / max_limit * 100, 2) 
-    
-    # 2. Calculate nextReset (Local time, HH:mm)
+    # 1. Calculate nextReset (Local time, HH:mm)
     next_reset_dt = datetime.fromtimestamp(next_reset_ms / 1000)
     next_reset_str = next_reset_dt.strftime("%H:%M")
     
-    # 3. Calculate remainingTime (HH:mm)
+    # 2. Calculate remainingTime (HH:mm)
     now_ts = time.time()
     diff_sec = max(0, (next_reset_ms / 1000) - now_ts)
     hours = int(diff_sec // 3600)
@@ -76,7 +72,7 @@ def calculate_metrics(token_limit):
     remaining_str = f"{hours:02d}:{minutes:02d}"
     
     return {
-        "quotaUsed": quota_used,
+        "quotaPercentage": quota_percentage,
         "nextReset": next_reset_str,
         "remainingTime": remaining_str
     }

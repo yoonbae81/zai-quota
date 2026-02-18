@@ -15,7 +15,7 @@ A Python script to query Z.ai usage quota limits and output calculated metrics i
 
 ### Prerequisites
 
-- Python 3.7 or higher
+- Python 3.12 or higher
 - pip
 
 ### Setup
@@ -86,19 +86,41 @@ systemctl --user restart zai-quota.service
 
 The systemd service runs the web server continuously with auto-restart on failure. Port is configured via the `PORT` environment variable in `.env` (default: 9999).
 
+## Sample Raw API Response
+
+```json
+{
+  "code": 200,
+  "msg": "Operation successful",
+  "data": {
+    "limits": [
+      {
+        "type": "TOKENS_LIMIT",
+        "unit": 3,
+        "number": 5,
+        "percentage": 100,
+        "nextResetTime": 1771391456700
+      }
+    ],
+    "level": "lite"
+  },
+  "success": true
+}
+```
+
 ## Output Format
 
 ```json
 {
-  "quotaUsed": 45.67,
-  "nextReset": "00:00",
-  "remainingTime": "05:23"
+  "quotaPercentage": 100,
+  "nextReset": "14:10",
+  "remainingTime": "00:17"
 }
 ```
 
-- `quotaUsed`: Percentage of quota used (0-100)
-- `nextReset`: Local time when quota resets (HH:MM)
-- `remainingTime`: Time remaining until reset (HH:MM)
+- `quotaPercentage`: Percentage of quota currently used (0-100)
+- `nextReset`: Local time when quota resets (HH:mm)
+- `remainingTime`: Time remaining until reset (HH:mm)
 
 ## Project Structure
 
@@ -114,14 +136,14 @@ zai-quota/
 │   ├── setup-env.sh        # Environment setup
 │   ├── install-systemd.sh  # Systemd service installation
 │   ├── run.sh              # Main execution script
-│   └── systemd/           # Systemd configuration files
+│   └── systemd/            # Systemd configuration files
 │       └── zai-quota.service
 ├── .venv/                  # Python virtual environment
 ├── .env                    # Environment variables (private)
 ├── .env.example            # Environment variable template
 ├── requirements.txt        # Python dependencies
-├── .gitignore             # Git ignore file
-└── README.md              # This file
+├── .gitignore              # Git ignore file
+└── README.md               # This file
 ```
 
 ## Running Tests
