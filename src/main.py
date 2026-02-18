@@ -80,6 +80,7 @@ def calculate_metrics(token_limit):
 class UsageRequestHandler(BaseHTTPRequestHandler):
     """HTTP request handler for usage query endpoint."""
     
+    
     def do_GET(self):
         """Handle GET requests."""
         api_key = os.environ.get("ZAI_API_KEY")
@@ -125,19 +126,28 @@ class UsageRequestHandler(BaseHTTPRequestHandler):
         pass
 
 
+
+
+
+
 def main():
-    parser = argparse.ArgumentParser(description='Query Z.ai usage quota limits')
+    parser = argparse.ArgumentParser(description='Query Z.ai quota usage')
     parser.add_argument('--server', '-s', action='store_true', help='Run as web server')
     parser.add_argument('--port', '-p', type=int, default=9999, help='Port number for web server (default: 9999)')
     parser.add_argument('api_key', nargs='?', help='API key (optional, can use ZAI_API_KEY env var)')
     
     args = parser.parse_args()
     
+
+    
     if args.server:
         # Web server mode
         api_key = args.api_key or os.environ.get("ZAI_API_KEY")
         if api_key:
             os.environ["ZAI_API_KEY"] = api_key
+            print(f"Using API Key: {api_key[:4]}...{api_key[-4:] if len(api_key) > 8 else ''}")
+        else:
+            print("Warning: No API Key found.")
         
         print(f"Starting web server on port {args.port}...")
         server = HTTPServer(('0.0.0.0', args.port), UsageRequestHandler)
