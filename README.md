@@ -32,10 +32,11 @@ cd zai-quota
 nano .env
 ```
 
-Set your Z.ai API key and optional port in `.env`:
+Set your Z.ai API key and optional port and base URL in `.env`:
 ```
 ZAI_API_KEY=your_api_key_here
 PORT=9999
+BASE_URL=/zai-quota
 ```
 
 ## Usage
@@ -53,15 +54,19 @@ PORT=9999
 ### Web Server Mode
 
 ```bash
-# Start web server on port from .env (default: 9999)
+# Start web server on port and base URL from .env (default: 9999, /zai-quota)
 ./scripts/run.sh --server
 
 # Or specify custom port (overrides .env)
 ./scripts/run.sh --server --port 8080
 ```
 
-Then access the endpoint:
+Then access the endpoint (the path depends on `BASE_URL`):
 ```bash
+# If BASE_URL=/zai-quota
+curl http://0.0.0.0:9999/zai-quota
+
+# If BASE_URL is empty or /
 curl http://0.0.0.0:9999/
 ```
 

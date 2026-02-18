@@ -83,7 +83,18 @@ class UsageRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests."""
         api_key = os.environ.get("ZAI_API_KEY")
+        base_url = os.environ.get("BASE_URL", "").rstrip("/")
         
+        # Validate path (allow base_url, base_url/, or / if base_url is empty)
+        current_path = self.path.split('?')[0].rstrip("/")
+        if current_path != base_url:
+            self.send_response(404)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            response = {"error": f"Not Found. Use {base_url or '/'}"}
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            return
+
         if not api_key:
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
