@@ -23,6 +23,45 @@ from datetime import datetime, timezone
 # Global Constants
 USAGE_API_URL = "https://api.z.ai/api/monitor/usage/quota/limit"
 
+
+def normalize_base_path(path):
+    """Normalize a configured base path for route matching."""
+    normalized = (path or "").strip()
+    if not normalized or normalized == "/":
+        return ""
+
+    normalized = normalized.strip("/")
+    return f"/{normalized}" if normalized else ""
+
+
+def get_allowed_base_paths(base_url, base_url_aliases=""):
+    """Return normalized base paths accepted by the web server."""
+    paths = []
+    seen = set()
+
+    for raw_path in [base_url, *base_url_aliases.split(",")]:
+        normalized = normalize_base_path(raw_path)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        paths.append(normalized)
+
+    if not paths:
+        return [""]
+
+    return paths
+
+
+def is_allowed_request_path(request_path, base_url, base_url_aliases=""):
+    """Check whether the request path matches the configured base path or aliases."""
+    current_path = request_path.split('?')[0].rstrip("/")
+    return current_path in get_allowed_base_paths(base_url, base_url_aliases)
+
+
+def format_allowed_paths(base_url, base_url_aliases=""):
+    """Return human-readable allowed paths for error messages."""
+    return [path or "/" for path in get_allowed_base_paths(base_url, base_url_aliases)]
+
 def fetch_usage_data(api_key):
     """Sends a request to the API and returns JSON data."""
     headers = {
@@ -84,15 +123,16 @@ class UsageRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests."""
         api_key = os.environ.get("ZAI_API_KEY")
-        base_url = os.environ.get("BASE_URL", "").rstrip("/")
+        base_url = os.environ.get("BASE_URL", "")
+        base_url_aliases = os.environ.get("BASE_URL_ALIASES", "")
         
         # Validate path (allow base_url, base_url/, or / if base_url is empty)
-        current_path = self.path.split('?')[0].rstrip("/")
-        if current_path != base_url:
+        if not is_allowed_request_path(self.path, base_url, base_url_aliases):
             self.send_response(404)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            response = {"error": f"Not Found. Use {base_url or '/'}"}
+            allowed_paths = ", ".join(format_allowed_paths(base_url, base_url_aliases))
+            response = {"error": f"Not Found. Use {allowed_paths}"}
             self.wfile.write(json.dumps(response).encode('utf-8'))
             return
 
