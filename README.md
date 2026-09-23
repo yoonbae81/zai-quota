@@ -37,6 +37,7 @@ Set your Z.ai API key and optional port and base URL in `.env`:
 ZAI_API_KEY=your_api_key_here
 PORT=9999
 BASE_URL=/zai-quota
+BASE_URL_ALIASES=/zai-proxy
 ```
 
 ## Usage
@@ -66,9 +67,14 @@ Then access the endpoint (the path depends on `BASE_URL`):
 # If BASE_URL=/zai-quota
 curl http://0.0.0.0:9999/zai-quota
 
+# If HAProxy also forwards /zai-proxy
+curl http://0.0.0.0:9999/zai-proxy
+
 # If BASE_URL is empty or /
 curl http://0.0.0.0:9999/
 ```
+
+If you want to expose the same app through multiple reverse-proxy paths, keep the main path in `BASE_URL` and add extra accepted paths to `BASE_URL_ALIASES` as a comma-separated list. For example, set `BASE_URL=/zai-quota` and `BASE_URL_ALIASES=/zai-proxy` when HAProxy forwards both `/zai-quota` and `/zai-proxy` to this service.
 
 ### Systemd Service (Linux)
 
