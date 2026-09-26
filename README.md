@@ -1,29 +1,36 @@
-# ZAI Quota
+# Quota
 
-A Python script to query Z.ai usage quota limits and output calculated metrics in JSON format.
+Query LLM usage quota limits across providers from one place and output calculated metrics in JSON format.
+
+Built with the Python standard library only — no external dependencies.
 
 ## Features
 
-- Query Z.ai API for current usage quota limits
-- Calculate usage percentage
-- Display next reset time and remaining time
+- Provider-based architecture: adding a new LLM provider takes one small module
+- Comprehensive view: all configured providers in a single JSON response
+- Per-provider endpoints with normalized output (`quotaPercentage`, `nextReset`, `remainingTime`)
 - Run as CLI tool or web server
-- Support for systemd service automation (web server mode)
-- Configurable port via environment variable
+- Reverse-proxy friendly (`BASE_URL` / `BASE_URL_ALIASES`)
+- systemd service automation (web server mode)
+
+## Providers
+
+| Provider   | Slug  | Env key       | Status    |
+|------------|-------|---------------|-----------|
+| Z.ai (GLM) | `zai` | `ZAI_API_KEY` | Supported |
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.12 or higher
-- pip
+- Python 3.9 or higher
 
 ### Setup
 
 ```bash
 # Clone repository
 git clone <repository-url>
-cd zai-quota
+cd quota
 
 # Run setup script
 ./scripts/setup-env.sh
@@ -32,72 +39,146 @@ cd zai-quota
 nano .env
 ```
 
-Set your Z.ai API key and optional port and base URL in `.env`:
+Set your provider API keys and optional port / base URL in `.env`:
 ```
 ZAI_API_KEY=your_api_key_here
 PORT=9999
-BASE_URL=/zai-quota
-BASE_URL_ALIASES=/zai-proxy
+BASE_URL=/quota
+BASE_URL_ALIASES=
 ```
+
+- `BASE_URL`: main path served by the web server (default: `/quota`)
+- `BASE_URL_ALIASES`: additional comma-separated paths to accept (e.g. `/zai-quota` to keep an old reverse-proxy path working)
 
 ## Usage
 
-### Manual Execution (CLI)
+### CLI
 
 ```bash
-# Run with API key from .env
+# Comprehensive view of all providers (uses keys from .env)
 ./scripts/run.sh
 
-# Or specify API key directly
-./scripts/run.sh <your_api_key>
-```
+# Single provider
+./scripts/run.sh zai
 
-### Web Server Mode
+# List registered providers and their configuration status
+./scripts/run.sh --list
 
-```bash
-# Start web server on port and base URL from .env (default: 9999, /zai-quota)
+# Start web server (port from .env or --port)
 ./scripts/run.sh --server
-
-# Or specify custom port (overrides .env)
 ./scripts/run.sh --server --port 8080
 ```
 
-Then access the endpoint (the path depends on `BASE_URL`):
+API keys are read from the environment (`.env` is loaded by `run.sh`).
+
+### Web Server Routes
+
+With the default `BASE_URL=/quota`:
+
 ```bash
-# If BASE_URL=/zai-quota
-curl http://0.0.0.0:9999/zai-quota
+# Comprehensive view across all providers
+curl http://localhost:9999/quota
 
-# If HAProxy also forwards /zai-proxy
-curl http://0.0.0.0:9999/zai-proxy
-
-# If BASE_URL is empty or /
-curl http://0.0.0.0:9999/
+# Single provider
+curl http://localhost:9999/quota/zai
 ```
 
-If you want to expose the same app through multiple reverse-proxy paths, keep the main path in `BASE_URL` and add extra accepted paths to `BASE_URL_ALIASES` as a comma-separated list. For example, set `BASE_URL=/zai-quota` and `BASE_URL_ALIASES=/zai-proxy` when HAProxy forwards both `/zai-quota` and `/zai-proxy` to this service.
+If HAProxy (or any reverse proxy) forwards additional paths, list them in `BASE_URL_ALIASES`. For example, with `BASE_URL=/quota` and `BASE_URL_ALIASES=/zai-quota`, both `/quota` and `/zai-quota` work identically.
 
-### Systemd Service (Linux)
+Unknown paths return `404` with a JSON error. A failing provider never breaks the comprehensive view — it is reported with a per-provider `status`.
+
+### systemd Service (Linux)
 
 ```bash
 # Install systemd service (runs web server)
 ./scripts/install-systemd.sh
 
 # Check service status
-systemctl --user status zai-quota.service
+systemctl --user status quota.service
 
 # View logs
-journalctl --user -u zai-quota.service -f
+journalctl --user -u quota.service -f
 
 # Stop service
-systemctl --user stop zai-quota.service
+systemctl --user stop quota.service
 
 # Restart service
-systemctl --user restart zai-quota.service
+systemctl --user restart quota.service
 ```
 
 The systemd service runs the web server continuously with auto-restart on failure. Port is configured via the `PORT` environment variable in `.env` (default: 9999).
 
-## Sample Raw API Response
+## Adding a New Provider
+
+1. Create `src/providers/<name>.py` with a `QuotaProvider` subclass:
+
+```python
+from .base import QuotaMetrics, QuotaProvider
+
+
+class MyProvider(QuotaProvider):
+    name = "myprovider"          # URL slug: /quota/myprovider
+    display_name = "My Provider"
+    env_key = "MYPROVIDER_API_KEY"
+
+    def fetch(self, api_key: str) -> QuotaMetrics:
+        # Query the provider API and normalize the result
+        ...
+        return QuotaMetrics(
+            quota_percentage=percentage,
+            next_reset_ms=next_reset_epoch_ms,  # or omit if unknown
+        )
+```
+
+2. Register it in `src/providers/__init__.py`:
+
+```python
+from .myprovider import MyProvider
+
+PROVIDERS = [
+    ZaiProvider(),
+    MyProvider(),
+]
+```
+
+The slug, aggregate view, CLI, and configuration checks are wired up automatically.
+
+## Output Format
+
+Single provider (`/quota/zai`, CLI `zai`):
+
+```json
+{
+  "quotaPercentage": 100,
+  "nextReset": "14:10",
+  "remainingTime": "00:17"
+}
+```
+
+- `quotaPercentage`: Percentage of quota currently used (0-100)
+- `nextReset`: Local time when quota resets (HH:mm)
+- `remainingTime`: Time remaining until reset (HH:mm)
+
+Comprehensive view (`/quota`, CLI without arguments):
+
+```json
+{
+  "generatedAt": "2026-09-26T19:30:59",
+  "providers": {
+    "zai": {
+      "configured": true,
+      "status": "ok",
+      "quotaPercentage": 100,
+      "nextReset": "14:10",
+      "remainingTime": "00:17"
+    }
+  }
+}
+```
+
+Per-provider `status` is one of `ok`, `not_configured`, or `error` (with an `error` message).
+
+## Sample Raw Z.ai API Response
 
 ```json
 {
@@ -119,40 +200,31 @@ The systemd service runs the web server continuously with auto-restart on failur
 }
 ```
 
-## Output Format
-
-```json
-{
-  "quotaPercentage": 100,
-  "nextReset": "14:10",
-  "remainingTime": "00:17"
-}
-```
-
-- `quotaPercentage`: Percentage of quota currently used (0-100)
-- `nextReset`: Local time when quota resets (HH:mm)
-- `remainingTime`: Time remaining until reset (HH:mm)
-
 ## Project Structure
 
 ```
-zai-quota/
+quota/
 ├── src/                    # Source code
-│   └── main.py            # Main script
+│   ├── main.py             # HTTP server, routing, CLI
+│   └── providers/          # Provider framework
+│       ├── __init__.py     # Provider registry
+│       ├── base.py         # QuotaProvider ABC + QuotaMetrics
+│       └── zai.py          # Z.ai provider
 ├── tests/                  # Test suite
 │   ├── __init__.py
 │   ├── test_main.py
+│   ├── test_server_routing.py
 │   └── README.md
 ├── scripts/                # Setup and deployment scripts
 │   ├── setup-env.sh        # Environment setup
-│   ├── install-systemd.sh  # Systemd service installation
+│   ├── install-systemd.sh  # systemd service installation
 │   ├── run.sh              # Main execution script
-│   └── systemd/            # Systemd configuration files
-│       └── zai-quota.service
+│   └── systemd/            # systemd configuration files
+│       └── quota.service
 ├── .venv/                  # Python virtual environment
 ├── .env                    # Environment variables (private)
 ├── .env.example            # Environment variable template
-├── requirements.txt        # Python dependencies
+├── requirements.txt        # Python dependencies (stdlib only)
 ├── .gitignore              # Git ignore file
 └── README.md               # This file
 ```

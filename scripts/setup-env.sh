@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 VENV_DIR="$PROJECT_DIR/.venv"
 
-echo "ZAI Usage - Environment Setup"
+echo "Quota - Environment Setup"
 echo "========================================"
 echo "Project directory: $PROJECT_DIR"
 echo ""
@@ -46,7 +46,7 @@ if [ ! -f "$PROJECT_DIR/.env" ]; then
     echo "Creating .env from .env.example..."
     cp "$PROJECT_DIR/.env.example" "$PROJECT_DIR/.env"
     echo ".env file created"
-    echo "Please edit .env and configure your ZAI_API_KEY"
+    echo "Please edit .env and configure your provider API keys"
 else
     echo ".env file exists"
 fi

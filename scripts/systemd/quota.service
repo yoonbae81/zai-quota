@@ -1,5 +1,5 @@
 [Unit]
-Description=ZAI Usage Quota Monitor Web Server
+Description=LLM Quota Monitor Web Server
 After=network-online.target
 Wants=network-online.target
 
@@ -13,7 +13,7 @@ ExecStart={{PROJECT_ROOT}}/.venv/bin/python {{PROJECT_ROOT}}/src/main.py --serve
 
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=zai-quota
+SyslogIdentifier=quota
 
 Restart=always
 RestartSec=10

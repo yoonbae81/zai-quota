@@ -4,9 +4,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
-SERVICE_NAME="zai-quota"
+SERVICE_NAME="quota"
 
-echo "ZAI Quota - Systemd Service Installation"
+echo "Quota - Systemd Service Installation"
 echo "=============================================="
 echo "Project directory: $PROJECT_DIR"
 echo ""
@@ -32,7 +32,7 @@ mkdir -p "$SYSTEMD_USER_DIR"
 echo "Creating $SERVICE_NAME.service..."
 cat > "$SYSTEMD_USER_DIR/$SERVICE_NAME.service" << EOF
 [Unit]
-Description=ZAI Usage Quota Monitor Web Server
+Description=LLM Quota Monitor Web Server
 After=network-online.target
 Wants=network-online.target
 
@@ -46,7 +46,7 @@ ExecStart=$PROJECT_DIR/.venv/bin/python3 $PROJECT_DIR/src/main.py --server --por
 
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=zai-quota
+SyslogIdentifier=quota
 
 Restart=always
 RestartSec=10
@@ -82,4 +82,4 @@ echo "  • Stop service:          systemctl --user stop $SERVICE_NAME.service"
 echo "  • Restart service:       systemctl --user restart $SERVICE_NAME.service"
 echo ""
 PORT_DISPLAY=${PORT:-9999}
-echo "Web server will be available at: http://localhost:$PORT_DISPLAY/"
+echo "Web server will be available at: http://localhost:$PORT_DISPLAY/quota"
